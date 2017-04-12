@@ -12,10 +12,60 @@ unsigned int FourByteToInt(unsigned char *buffer){
 }
 
 int CheckMagicNo(unsigned char *buffer){
+    // This function returns true if *buffer contains the magic number
     if((buffer[0] == 0xF9) && (buffer[1] == 0xBE) && (buffer[2] == 0xB4) && (buffer[3] == 0xD9)){
         return 1;
     }
     else return 0;
+}
+
+unsigned long long VarIntToLong(int fd, int pos){
+    unsigned char first_byte;
+    unsigned char other_bytes[8];
+    int lfd = dup(fd);
+    unsigned long long result;
+    if(lseek(lfd, pos, SEEK_SET) == -1){
+        perror("lseek");
+        exit(1);
+    }
+    if(read(lfd, &first_byte, 1) == -1){
+        perror("read");
+        exit(1);
+    }
+    if(first_byte < 0xFD){
+        result = first_byte;
+        return result;
+    }
+    else if(first_byte == 0xFD){
+        if(read(lfd, other_bytes, 2) == -1){
+            perror("read");
+            exit(1);
+        }
+        result = (unsigned long long)other_bytes[1]<<8 | (unsigned long long)other_bytes[0];
+        return result;
+    }
+    else if(first_byte == 0xFE){
+        if(read(lfd, other_bytes, 4) == -1){
+            perror("read");
+            exit(1);
+        }
+        result = (unsigned long long)other_bytes[3]<<24 | (unsigned long long)other_bytes[2]<<16
+                | (unsigned long long)other_bytes[1]<<8 | (unsigned long long)other_bytes[0];
+        return result;
+    }
+    else if(first_byte == 0xFF){
+        if(read(lfd, other_bytes, 8) == -1){
+            perror("read");
+            exit(1);
+        }
+        result = (unsigned long long)other_bytes[7]<<56 | (unsigned long long)other_bytes[6]<<48
+                | (unsigned long long)other_bytes[5]<<40 | (unsigned long long)other_bytes[4]<<32
+                | (unsigned long long)other_bytes[3]<<24 | (unsigned long long)other_bytes[2]<<16
+                | (unsigned long long)other_bytes[1]<<8 | (unsigned long long)other_bytes[0];
+        return result;
+    }
+    close(lfd);
+    return -1;
 }
 
 void PrintFourByteLittleEndian(unsigned char *buffer){
@@ -24,11 +74,21 @@ void PrintFourByteLittleEndian(unsigned char *buffer){
 }
 
 void PrintBlockHeader(unsigned char *buffer){
+    // This function prints the 80 bytes of a block header contained in *buffer
     int i;
     for(i=0; i<80; i++){
         printf("%02X ", buffer[i]);
     }
     printf("\n");
+}
+
+void PrintHash(unsigned char *buffer){
+    // This function prints the 32 bytes of a hash contained in *buffer
+    int i;
+    for(i=31;i>=0;i--){
+        printf("%02x", buffer[i]);
+    }
+    //printf("\n");
 }
 
 int NextBlockPosition(int fd, int pos){
@@ -127,15 +187,17 @@ void GetBlockHeader(int fd, int pos, unsigned char *header){
 }
 
 void CalcBlockHash(int fd, int pos, unsigned char *hash){
+    //This function calculates the hash of the block that starts at pos and store the result to *hash.
+    //*hash must be an array of 32 bytes.
     unsigned char hash_final[32];
     unsigned char header[80];
     SHA256_CTX hasher;
     sha256_init(&hasher);
 
     GetBlockHeader(fd, pos, header);
-    sha256_update(&hasher, &header, 80);
+    sha256_update(&hasher, (BYTE*)&header, 80);
     sha256_final(&hasher, hash_final);
     sha256_init(&hasher);
-    sha256_update(&hasher, &hash_final, 32);
+    sha256_update(&hasher, (BYTE*)&hash_final, 32);
     sha256_final(&hasher, hash);
 }

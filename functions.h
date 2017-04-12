@@ -13,3 +13,5 @@ void GetHashPreviousBlock(int fd, int pos, unsigned char *hash);
 void GetBlockHeader(int fd, int pos, unsigned char *header);
 void PrintBlockHeader(unsigned char *buffer);
 void CalcBlockHash(int fd, int pos, unsigned char *hash);
+void PrintHash(unsigned char *buffer);
+unsigned long long int VarIntToLong(int fd, int pos);

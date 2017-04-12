@@ -12,18 +12,65 @@ void test_parse(){
     int pos;
     int blocksize;
 
-    unsigned char hash_final[32];
 
     unsigned char buffer[4];
-    unsigned char hash[32];
+    unsigned char single_byte;
+    unsigned char curr_hash[32];
+    unsigned char prev_hash[32];
     unsigned char header[80];
-    const char *file_name = "../blk00000.dat";
+    const char *file_name = "../blk00000_c.dat";
     if((fd = open(file_name, O_RDONLY)) == -1){
         perror(file_name);
         exit(1);
     }
 
     pos = 0;
+    read(fd, buffer, 4);
+    if(CheckMagicNo(buffer)){
+        printf("MAGICNO OK!\n");
+    }
+    unsigned long long txcount;
+    txcount = VarIntToLong(fd, pos+88);
+    printf("%llu\n", txcount);
+
+
+    //REACHING THE TX NUMBER 496, first with multiple inputs
+    /*
+    for(i=0; i<100000; i++){
+        pos = NextBlockPosition(fd, pos);
+    }
+
+    CalcBlockHash(fd, pos, curr_hash);
+    PrintHash(curr_hash);
+    printf("\n");
+
+    lseek(fd, pos, SEEK_SET);
+    printf("pos: %i\n",pos);
+    read(fd, buffer, 4);
+    if(CheckMagicNo(buffer)){
+        printf("MAGICNO OK!\n");
+    }
+    lseek(fd, 84, SEEK_CUR);
+    unsigned long int txcount;
+
+    txcount = VarIntToLong(fd, pos+88);
+
+    printf("%li\n", txcount);
+
+    */
+    /*
+    for(i=0; i<496; i++){
+        CalcBlockHash(fd, pos, curr_hash);
+        printf("%02i: ",i);
+        PrintHash(curr_hash);
+        printf(" -> ");
+        pos = NextBlockPosition(fd, pos);
+        GetHashPreviousBlock(fd, pos, prev_hash);
+        PrintHash(prev_hash);
+        printf("\n");
+    }
+    */
+    /*
     GetBlockHeader(fd, pos, header);
     PrintBlockHeader(header);
 
@@ -42,6 +89,7 @@ void test_parse(){
         printf("%02x ", hash_final[i]);
     }
     printf("\n");
+    */
 
 
 
