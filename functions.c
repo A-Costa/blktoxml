@@ -241,16 +241,56 @@ void CalcTxHash(int fd, POSITION pos, unsigned char *hash){
     sha256_init(&hasher);
     sha256_update(&hasher, (BYTE*)&hash_final, 32);
     sha256_final(&hasher, hash);
+    free(tx);
 }
 
-void CalcBlockHash(int fd, int pos, unsigned char *hash){
+void PrintTxInputs(int fd, POSITION pos){
+    unsigned long long i;
+    int lfd = dup(fd);
+    unsigned long long inputs, outputs;
+    unsigned long long txinscriptlen;
+    unsigned char prev_tx_hash[32];
+    unsigned char prev_tx_index[4];
+    unsigned int prev_tx_index_int;
+
+    pos += 4;
+    inputs = VarIntToUnsignedLongLong(lfd, pos);
+    pos = JumpAfterVarInt(lfd, pos);
+
+    for(i=0; i<inputs; i++){
+        if(lseek(lfd, pos, SEEK_SET) == -1){
+            perror("lseek");
+            exit(1);
+        }
+        read(lfd, prev_tx_hash, 32);
+        printf("       ");
+        PrintHash(prev_tx_hash);
+        read(lfd, prev_tx_index, 4);
+        prev_tx_index_int = FourByteToInt(prev_tx_index);
+        if(prev_tx_index_int == 0xFFFFFFFF){
+            printf(" ---> coinbase");
+        }
+        else{
+            printf(" ---> %u", prev_tx_index_int);
+        }
+        printf("\n");
+        pos+=32;
+        pos+=4;
+        txinscriptlen = VarIntToUnsignedLongLong(lfd, pos);
+        pos = JumpAfterVarInt(lfd, pos);
+        pos += txinscriptlen;
+        pos += 4;
+    }
+    close(lfd);
+}
+
+void CalcBlockHash(int fd, POSITION pos, unsigned char *hash){
     //This function calculates the hash of the block that starts at pos and store the result to *hash.
     //*hash must be an array of 32 bytes.
     unsigned char hash_final[32];
     unsigned char header[80];
     SHA256_CTX hasher;
     sha256_init(&hasher);
-
     GetBlockHeader(fd, pos, header);
     sha256_update(&hasher, (BYTE*)&header, 80);
     sha256_final(&hasher, hash_final);
@@ -259,25 +299,29 @@ void CalcBlockHash(int fd, int pos, unsigned char *hash){
     sha256_final(&hasher, hash);
 }
 
-void GetBlockHeader(int fd, int pos, unsigned char *header){
+void GetBlockHeader(int fd, POSITION pos, unsigned char *header){
     int lfd = dup(fd);
     if(lseek(lfd, pos, SEEK_SET) == -1){
-        perror("lseek");
+        close(lfd);
+        perror("lseek_getblockheader");
         exit(1);
     }
     unsigned char buffer[4];
 
     if(read(lfd, buffer, 4) == -1){
-        perror("read");
+        close(lfd);
+        perror("read_getblockheader");
         exit(1);
     }
     if(CheckMagicNo(buffer)){
         if(lseek(lfd, 4, SEEK_CUR) == -1){
-            perror("lseek");
+            close(lfd);
+            perror("lseek_getblockheader");
             exit(1);
         }
         if(read(lfd, header, 80) == -1){
-            perror("read");
+            close(lfd);
+            perror("read_getblockheader");
             exit(1);
         }
     }

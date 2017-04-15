@@ -20,5 +20,7 @@ void CalcTxHash(int fd, POSITION pos, unsigned char *hash);
 void PrintHash(unsigned char *buffer);
 
 
-void CalcBlockHash(int fd, int pos, unsigned char *hash);
-void GetBlockHeader(int fd, int pos, unsigned char *header);
+void CalcBlockHash(int fd, POSITION pos, unsigned char *hash);
+void GetBlockHeader(int fd, POSITION pos, unsigned char *header);
+
+void PrintTxInputs(int fd, POSITION pos);
