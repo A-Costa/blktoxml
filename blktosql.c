@@ -9,7 +9,7 @@
 void test_parse(){
     int i;
     int fd;
-    int pos;
+    unsigned long long pos;
     int blocksize;
 
 
@@ -18,25 +18,17 @@ void test_parse(){
     unsigned char curr_hash[32];
     unsigned char prev_hash[32];
     unsigned char header[80];
-    const char *file_name = "../blk00000_c.dat";
+    const char *file_name = "../blk00000.dat";
     if((fd = open(file_name, O_RDONLY)) == -1){
         perror(file_name);
         exit(1);
     }
 
     pos = 0;
-    read(fd, buffer, 4);
-    if(CheckMagicNo(buffer)){
-        printf("MAGICNO OK!\n");
-    }
-    unsigned long long txcount;
-    txcount = VarIntToLong(fd, pos+88);
-    printf("%llu\n", txcount);
-
 
     //REACHING THE TX NUMBER 496, first with multiple inputs
-    /*
-    for(i=0; i<100000; i++){
+
+    for(i=0; i<496; i++){
         pos = NextBlockPosition(fd, pos);
     }
 
@@ -45,19 +37,37 @@ void test_parse(){
     printf("\n");
 
     lseek(fd, pos, SEEK_SET);
-    printf("pos: %i\n",pos);
+    printf("pos: %llu\n",pos);
     read(fd, buffer, 4);
     if(CheckMagicNo(buffer)){
         printf("MAGICNO OK!\n");
     }
-    lseek(fd, 84, SEEK_CUR);
-    unsigned long int txcount;
+    pos += 88;
 
-    txcount = VarIntToLong(fd, pos+88);
+    unsigned long long txcount;
+    txcount = VarIntToLong(fd, pos);
+    printf("txcount: %llu\n", txcount);
 
-    printf("%li\n", txcount);
+    if(txcount < 0xFD){
+        pos +=1;
+    }
+    else if(txcount <= 0xFFFF){
+        pos +=3;
+    }
+    else if(txcount <= 0xFFFFFFFF){
+        pos +=5;
+    }
+    else{
+        pos +=9;
+    }
 
-    */
+    CalcTxSize(fd, pos);
+
+    //for(i=0;i<4;i++){
+    //    printf("%02x",buffer[i]);
+    //}
+    //printf("\n");
+
     /*
     for(i=0; i<496; i++){
         CalcBlockHash(fd, pos, curr_hash);

@@ -65,7 +65,7 @@ unsigned long long VarIntToLong(int fd, int pos){
         return result;
     }
     close(lfd);
-    return -1;
+    return 0;
 }
 
 void PrintFourByteLittleEndian(unsigned char *buffer){
@@ -200,4 +200,16 @@ void CalcBlockHash(int fd, int pos, unsigned char *hash){
     sha256_init(&hasher);
     sha256_update(&hasher, (BYTE*)&hash_final, 32);
     sha256_final(&hasher, hash);
+}
+
+unsigned long long CalcTxSize(int fd, int pos){
+    int lfd = dup(fd);
+    unsigned long long inputs;
+    if(lseek(lfd, pos, SEEK_SET) == -1){
+        perror("lseek");
+        exit(1);
+    }
+    inputs = VarIntToLong(fd, pos+4);
+    printf("%llu\n", inputs);
+    return 1;
 }

@@ -15,3 +15,9 @@ void PrintBlockHeader(unsigned char *buffer);
 void CalcBlockHash(int fd, int pos, unsigned char *hash);
 void PrintHash(unsigned char *buffer);
 unsigned long long int VarIntToLong(int fd, int pos);
+
+unsigned long long CalcTxSize(int fd, int pos);
+
+//void CalcTxHash(...)
+//void NextTxPosition(...)
+//unsigned long long CalcTxSize(...)
