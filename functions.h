@@ -6,6 +6,11 @@
 #include "sha256.h"
 
 typedef unsigned long long POSITION;
+typedef struct s_txinput{
+    unsigned char prev_tx_hash[32];
+    unsigned int prev_tx_index;
+} txinput;
+
 
 unsigned int FourByteToInt(unsigned char *buffer);
 unsigned int CheckMagicNo(unsigned char *buffer);
@@ -23,3 +28,5 @@ void GetBlockHeader(int fd, POSITION pos, unsigned char *header);
 unsigned long long GetTxCounter(int fd, POSITION pos);
 void CalcTxHash(int fd, POSITION pos, unsigned char *hash);
 void PrintTxInputs(int fd, POSITION pos);
+
+unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result);

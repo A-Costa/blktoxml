@@ -3,6 +3,9 @@
 //***** -> Typedefs and Data Structures
 typedef unsigned long long POSITION;
 
+
+
+
 //***** -> Utilities Functions
 unsigned int FourByteToInt(unsigned char *buffer){
     // This function takes a 4 byte array and returns the corresponding int
@@ -327,4 +330,50 @@ void PrintTxInputs(int fd, POSITION pos){
         pos += 4;
     }
     close(lfd);
+}
+
+unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result){
+    unsigned long long i;
+    int j;
+    int lfd = dup(fd);
+    unsigned long long inputs;
+    unsigned long long txinscriptlen;
+    unsigned char prev_tx_hash[32];
+    unsigned char prev_tx_index[4];
+    unsigned int prev_tx_index_int;
+
+    pos += 4;
+    inputs = VarIntToUnsignedLongLong(lfd, pos);
+    pos = JumpAfterVarInt(lfd, pos);
+
+    *result = malloc(inputs * sizeof(txinput));
+
+    for(i=0; i<inputs; i++){
+        if(lseek(lfd, pos, SEEK_SET) == -1){
+            perror("lseek_extracttxinputs");
+            exit(1);
+        }
+        if(read(lfd, prev_tx_hash, 32) == -1){
+            perror("read_extracttxinputs");
+            exit(1);
+        }
+        if(read(lfd, prev_tx_index, 4) == -1){
+            perror("read_extracttxinputs");
+            exit(1);
+        }
+        prev_tx_index_int = FourByteToInt(prev_tx_index);
+
+        for(j=0;j<32;j++){
+            (*result)[i].prev_tx_hash[j] = prev_tx_hash[j];
+        }
+        (*result)[i].prev_tx_index = prev_tx_index_int;
+
+        pos+=32;
+        pos+=4;
+        txinscriptlen = VarIntToUnsignedLongLong(lfd, pos);
+        pos = JumpAfterVarInt(lfd, pos);
+        pos += txinscriptlen;
+        pos += 4;
+    }
+    return inputs;
 }
