@@ -35,6 +35,7 @@ unsigned long long VarIntToUnsignedLongLong(int fd, int pos){
         exit(1);
     }
     if(first_byte < 0xFD){
+        close(lfd);
         result = (unsigned long long)first_byte;
         return result;
     }
@@ -44,6 +45,7 @@ unsigned long long VarIntToUnsignedLongLong(int fd, int pos){
             perror("read");
             exit(1);
         }
+        close(lfd);
         result = (unsigned long long)other_bytes[1]<<8 | (unsigned long long)other_bytes[0];
         return result;
     }
@@ -53,6 +55,7 @@ unsigned long long VarIntToUnsignedLongLong(int fd, int pos){
             perror("read");
             exit(1);
         }
+        close(lfd);
         result = (unsigned long long)other_bytes[3]<<24 | (unsigned long long)other_bytes[2]<<16
                 | (unsigned long long)other_bytes[1]<<8 | (unsigned long long)other_bytes[0];
         return result;
@@ -62,6 +65,7 @@ unsigned long long VarIntToUnsignedLongLong(int fd, int pos){
             perror("read");
             exit(1);
         }
+        close(lfd);
         result = (unsigned long long)other_bytes[7]<<56 | (unsigned long long)other_bytes[6]<<48
                 | (unsigned long long)other_bytes[5]<<40 | (unsigned long long)other_bytes[4]<<32
                 | (unsigned long long)other_bytes[3]<<24 | (unsigned long long)other_bytes[2]<<16
@@ -276,6 +280,8 @@ void CalcTxHash(int fd, POSITION pos, unsigned char *hash){
         exit(1);
     }
 
+    close(lfd);
+
     /*
     printf("tx_bytes: ");
     for(i=0;i<tx_size;i++){
@@ -375,5 +381,6 @@ unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result){
         pos += txinscriptlen;
         pos += 4;
     }
+    close(lfd);
     return inputs;
 }
