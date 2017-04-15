@@ -1,13 +1,14 @@
 #include "functions.h"
 
+//***** -> Typedefs and Data Structures
 typedef unsigned long long POSITION;
 
+//***** -> Utilities Functions
 unsigned int FourByteToInt(unsigned char *buffer){
     // This function takes a 4 byte array and returns the corresponding int
     unsigned int result = buffer[3]<<24 | buffer[2]<<16 | buffer[1]<<8 | buffer[0];
     return result;
 }
-
 unsigned int CheckMagicNo(unsigned char *buffer){
     // This function returns true if *buffer contains the magic number
     if((buffer[0] == 0xF9) && (buffer[1] == 0xBE) && (buffer[2] == 0xB4) && (buffer[3] == 0xD9)){
@@ -15,93 +16,6 @@ unsigned int CheckMagicNo(unsigned char *buffer){
     }
     else return 0;
 }
-
-POSITION JumpAfterVarInt(int fd, POSITION pos){
-    int lfd = dup(fd);
-    unsigned char first_byte;
-    if(lseek(lfd, pos, SEEK_SET) == -1){
-        close(lfd);
-        perror("lseek");
-        exit(1);
-    }
-    if(read(lfd, &first_byte, 1) == -1){
-        close(lfd);
-        perror("read");
-        exit(1);
-    }
-    close(lfd);
-    if(first_byte < 0xFD){
-        return pos+1;
-    }
-    else if(first_byte == 0xFD){
-        return pos+3;
-    }
-    else if(first_byte == 0xFE){
-        return pos+5;
-    }
-    else if(first_byte == 0xFF){
-        return pos+9;
-    }
-    return 0;
-}
-
-POSITION NextBlockPosition(int fd, POSITION pos){
-    // This function takes as input the position of a block in a file (seek index), checks that it is really
-    // the beginning of a block (the first 4 bytes must be the magic number 0xD9B4BEF9) and returns the position
-    // in the file of the next block. It returns -1 in case of error
-    unsigned int blocksize;
-    POSITION nextpos;
-    unsigned char buffer[4];
-
-    int lfd = dup(fd);
-    if(lseek(lfd, pos, SEEK_SET) == -1){
-        perror("lseek_nextblockposition");
-        exit(1);
-    }
-
-    if(read(lfd, buffer, 4) == -1){
-        close(lfd);
-        perror("read_nextblockposition");
-        exit(1);
-    }
-    if(CheckMagicNo(buffer)){
-        if(read(lfd, buffer, 4) == -1){
-            close(lfd);
-            perror("read_nextblockposition");
-            exit(1);
-        }
-        blocksize = FourByteToInt(buffer);
-        if((nextpos = lseek(lfd, blocksize, SEEK_CUR)) == -1){
-            close(lfd);
-            perror("lseek_nextblockposition");
-            exit(1);
-        };
-        if(read(lfd, buffer, 4) == -1){
-            close(lfd);
-            perror("read_nextblockposition");
-            exit(1);
-        }
-        if(CheckMagicNo(buffer)){
-            close(lfd);
-            return nextpos;
-        }
-    }
-    close(lfd);
-    printf("ERROR_nextblockposition: position is not the beginning of a block\n");
-    return 0xffffffffffffffff;
-}
-
-
-POSITION GoToTxCounter(int fd, POSITION pos){
-    return pos+88;
-}
-
-POSITION GoToFirstTx(int fd, POSITION pos){
-    pos = GoToTxCounter(fd, pos);
-    pos = JumpAfterVarInt(fd, pos);
-    return pos;
-}
-
 unsigned long long VarIntToUnsignedLongLong(int fd, int pos){
     unsigned char first_byte;
     unsigned char other_bytes[8];
@@ -154,13 +68,61 @@ unsigned long long VarIntToUnsignedLongLong(int fd, int pos){
     close(lfd);
     return 0;
 }
-
-unsigned long long GetTxCounter(int fd, POSITION pos){
-    return VarIntToUnsignedLongLong(fd, GoToTxCounter(fd, pos));
+void PrintHash(unsigned char *buffer){
+    // This function prints the 32 bytes of a hash contained in *buffer
+    int i;
+    for(i=31;i>=0;i--){
+        printf("%02x", buffer[i]);
+    }
+    //printf("\n");
 }
 
+//***** -> Positioning Functions
+POSITION NextBlockPosition(int fd, POSITION pos){
+    // This function takes as input the position of a block in a file (seek index), checks that it is really
+    // the beginning of a block (the first 4 bytes must be the magic number 0xD9B4BEF9) and returns the position
+    // in the file of the next block. It returns -1 in case of error
+    unsigned int blocksize;
+    POSITION nextpos;
+    unsigned char buffer[4];
 
+    int lfd = dup(fd);
+    if(lseek(lfd, pos, SEEK_SET) == -1){
+        perror("lseek_nextblockposition");
+        exit(1);
+    }
 
+    if(read(lfd, buffer, 4) == -1){
+        close(lfd);
+        perror("read_nextblockposition");
+        exit(1);
+    }
+    if(CheckMagicNo(buffer)){
+        if(read(lfd, buffer, 4) == -1){
+            close(lfd);
+            perror("read_nextblockposition");
+            exit(1);
+        }
+        blocksize = FourByteToInt(buffer);
+        if((nextpos = lseek(lfd, blocksize, SEEK_CUR)) == -1){
+            close(lfd);
+            perror("lseek_nextblockposition");
+            exit(1);
+        };
+        if(read(lfd, buffer, 4) == -1){
+            close(lfd);
+            perror("read_nextblockposition");
+            exit(1);
+        }
+        if(CheckMagicNo(buffer)){
+            close(lfd);
+            return nextpos;
+        }
+    }
+    close(lfd);
+    printf("ERROR_nextblockposition: position is not the beginning of a block\n");
+    return 0xffffffffffffffff;
+}
 POSITION NextTxPosition(int fd, POSITION pos){
     unsigned long long i;
     int lfd = dup(fd);
@@ -196,7 +158,91 @@ POSITION NextTxPosition(int fd, POSITION pos){
     close(lfd);
     return pos;
 }
+POSITION JumpAfterVarInt(int fd, POSITION pos){
+    int lfd = dup(fd);
+    unsigned char first_byte;
+    if(lseek(lfd, pos, SEEK_SET) == -1){
+        close(lfd);
+        perror("lseek");
+        exit(1);
+    }
+    if(read(lfd, &first_byte, 1) == -1){
+        close(lfd);
+        perror("read");
+        exit(1);
+    }
+    close(lfd);
+    if(first_byte < 0xFD){
+        return pos+1;
+    }
+    else if(first_byte == 0xFD){
+        return pos+3;
+    }
+    else if(first_byte == 0xFE){
+        return pos+5;
+    }
+    else if(first_byte == 0xFF){
+        return pos+9;
+    }
+    return 0;
+}
+POSITION GoToTxCounter(int fd, POSITION pos){
+    return pos+88;
+}
+POSITION GoToFirstTx(int fd, POSITION pos){
+    pos = GoToTxCounter(fd, pos);
+    pos = JumpAfterVarInt(fd, pos);
+    return pos;
+}
 
+//***** -> Blocks-Related Functions
+void CalcBlockHash(int fd, POSITION pos, unsigned char *hash){
+    //This function calculates the hash of the block that starts at pos and store the result to *hash.
+    //*hash must be an array of 32 bytes.
+    unsigned char hash_final[32];
+    unsigned char header[80];
+    SHA256_CTX hasher;
+    sha256_init(&hasher);
+    GetBlockHeader(fd, pos, header);
+    sha256_update(&hasher, (BYTE*)&header, 80);
+    sha256_final(&hasher, hash_final);
+    sha256_init(&hasher);
+    sha256_update(&hasher, (BYTE*)&hash_final, 32);
+    sha256_final(&hasher, hash);
+}
+void GetBlockHeader(int fd, POSITION pos, unsigned char *header){
+    int lfd = dup(fd);
+    if(lseek(lfd, pos, SEEK_SET) == -1){
+        close(lfd);
+        perror("lseek_getblockheader");
+        exit(1);
+    }
+    unsigned char buffer[4];
+
+    if(read(lfd, buffer, 4) == -1){
+        close(lfd);
+        perror("read_getblockheader");
+        exit(1);
+    }
+    if(CheckMagicNo(buffer)){
+        if(lseek(lfd, 4, SEEK_CUR) == -1){
+            close(lfd);
+            perror("lseek_getblockheader");
+            exit(1);
+        }
+        if(read(lfd, header, 80) == -1){
+            close(lfd);
+            perror("read_getblockheader");
+            exit(1);
+        }
+    }
+    close(lfd);
+}
+
+//***** -> Tx-Related Functions
+unsigned long long GetTxCounter(int fd, POSITION pos){
+    return VarIntToUnsignedLongLong(fd, GoToTxCounter(fd, pos));
+}
 void CalcTxHash(int fd, POSITION pos, unsigned char *hash){
     unsigned long long i;
     POSITION ntxp;
@@ -243,7 +289,6 @@ void CalcTxHash(int fd, POSITION pos, unsigned char *hash){
     sha256_final(&hasher, hash);
     free(tx);
 }
-
 void PrintTxInputs(int fd, POSITION pos){
     unsigned long long i;
     int lfd = dup(fd);
@@ -282,57 +327,4 @@ void PrintTxInputs(int fd, POSITION pos){
         pos += 4;
     }
     close(lfd);
-}
-
-void CalcBlockHash(int fd, POSITION pos, unsigned char *hash){
-    //This function calculates the hash of the block that starts at pos and store the result to *hash.
-    //*hash must be an array of 32 bytes.
-    unsigned char hash_final[32];
-    unsigned char header[80];
-    SHA256_CTX hasher;
-    sha256_init(&hasher);
-    GetBlockHeader(fd, pos, header);
-    sha256_update(&hasher, (BYTE*)&header, 80);
-    sha256_final(&hasher, hash_final);
-    sha256_init(&hasher);
-    sha256_update(&hasher, (BYTE*)&hash_final, 32);
-    sha256_final(&hasher, hash);
-}
-
-void GetBlockHeader(int fd, POSITION pos, unsigned char *header){
-    int lfd = dup(fd);
-    if(lseek(lfd, pos, SEEK_SET) == -1){
-        close(lfd);
-        perror("lseek_getblockheader");
-        exit(1);
-    }
-    unsigned char buffer[4];
-
-    if(read(lfd, buffer, 4) == -1){
-        close(lfd);
-        perror("read_getblockheader");
-        exit(1);
-    }
-    if(CheckMagicNo(buffer)){
-        if(lseek(lfd, 4, SEEK_CUR) == -1){
-            close(lfd);
-            perror("lseek_getblockheader");
-            exit(1);
-        }
-        if(read(lfd, header, 80) == -1){
-            close(lfd);
-            perror("read_getblockheader");
-            exit(1);
-        }
-    }
-    close(lfd);
-}
-
-void PrintHash(unsigned char *buffer){
-    // This function prints the 32 bytes of a hash contained in *buffer
-    int i;
-    for(i=31;i>=0;i--){
-        printf("%02x", buffer[i]);
-    }
-    //printf("\n");
 }

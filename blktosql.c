@@ -27,7 +27,7 @@ void test_parse(){
     pos = 0;
 
     //for(i=0; i<136913; i++){
-    for(i=0; i<496; i++){
+    for(i=0; i<34402; i++){
         pos = NextBlockPosition(fd, pos);
     }
     CalcBlockHash(fd, pos, da_hash);
@@ -37,7 +37,7 @@ void test_parse(){
     tx_counter = GetTxCounter(fd, pos);
     printf("tx_counter: %llu\n", tx_counter);
     //pos = NextBlockPosition(fd, pos);
-    
+
     pos = GoToFirstTx(fd, pos);
 
 /*
