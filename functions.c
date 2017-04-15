@@ -12,6 +12,15 @@ unsigned int FourByteToInt(unsigned char *buffer){
     unsigned int result = buffer[3]<<24 | buffer[2]<<16 | buffer[1]<<8 | buffer[0];
     return result;
 }
+unsigned long EightByteToLongLong(unsigned char *buffer){
+    // This function takes a 4 byte array and returns the corresponding int
+    unsigned long long result;
+    result = (unsigned long long)buffer[7]<<56 | (unsigned long long)buffer[6]<<48
+            | (unsigned long long)buffer[5]<<40 | (unsigned long long)buffer[4]<<32
+            | (unsigned long long)buffer[3]<<24 | (unsigned long long)buffer[2]<<16
+            | (unsigned long long)buffer[1]<<8 | (unsigned long long)buffer[0];
+    return result;
+}
 unsigned int CheckMagicNo(unsigned char *buffer){
     // This function returns true if *buffer contains the magic number
     if((buffer[0] == 0xF9) && (buffer[1] == 0xBE) && (buffer[2] == 0xB4) && (buffer[3] == 0xD9)){
@@ -334,6 +343,61 @@ void PrintTxInputs(int fd, POSITION pos){
         pos = JumpAfterVarInt(lfd, pos);
         pos += txinscriptlen;
         pos += 4;
+    }
+    close(lfd);
+}
+
+void PrintTxOutputs(int fd, POSITION pos){
+    unsigned long long i;
+    int j;
+    int lfd = dup(fd);
+    unsigned long long inputs, outputs;
+    unsigned long long txinscriptlen, txoutscriptlen;
+    //unsigned char prev_tx_hash[32];
+    unsigned char satoshis[8];
+    unsigned char *script;
+
+    pos += 4;
+    inputs = VarIntToUnsignedLongLong(lfd, pos);
+    pos = JumpAfterVarInt(lfd, pos);
+
+    for(i=0; i<inputs; i++){
+        pos+=32;
+        pos+=4;
+        txinscriptlen = VarIntToUnsignedLongLong(lfd, pos);
+        pos = JumpAfterVarInt(lfd, pos);
+        pos += txinscriptlen;
+        pos += 4;
+    }
+
+    outputs = VarIntToUnsignedLongLong(lfd, pos);
+    pos = JumpAfterVarInt(lfd, pos);
+
+    for(i=0; i<outputs; i++){
+        if(lseek(lfd, pos, SEEK_SET) == -1){
+            perror("lseek_printtxinputs");
+            exit(1);
+        }
+        read(lfd, satoshis, 8);
+        unsigned long long amount;
+        amount = EightByteToLongLong(satoshis);
+        printf("     amount: %llu\n", amount);
+        //50 06550000
+        pos += 8;
+        txoutscriptlen = VarIntToUnsignedLongLong(lfd, pos);
+        pos = JumpAfterVarInt(lfd, pos);
+        script = malloc(sizeof(unsigned char) *txoutscriptlen);
+        if(lseek(lfd, pos, SEEK_SET) == -1){
+            perror("lseek_printtxinputs");
+            exit(1);
+        }
+        read(lfd, script, txoutscriptlen);
+        printf("------> script: ");
+        for(j=0;j<txoutscriptlen;j++){
+            printf("%02x ", script[j]);
+        }
+        printf("\n");
+        pos += txoutscriptlen;
     }
     close(lfd);
 }

@@ -28,5 +28,6 @@ void GetBlockHeader(int fd, POSITION pos, unsigned char *header);
 unsigned long long GetTxCounter(int fd, POSITION pos);
 void CalcTxHash(int fd, POSITION pos, unsigned char *hash);
 void PrintTxInputs(int fd, POSITION pos);
+void PrintTxOutputs(int fd, POSITION pos);
 
 unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result);

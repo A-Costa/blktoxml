@@ -50,7 +50,9 @@ void test_parse(){
     PrintHash(da_hash);
     printf("\n");
 */
-    printf("\n");
+    //printf("\n");
+
+    /* // IMPORTANTE::::::::
     for(i=0; i<tx_counter; i++){
         CalcTxHash(fd, pos, da_hash);
         printf("tx %02i: ", i);
@@ -70,6 +72,22 @@ void test_parse(){
         }
         pos = NextTxPosition(fd, pos);
     }
+    */
+
+    for(i=0; i<tx_counter; i++){
+        CalcTxHash(fd, pos, da_hash);
+        printf("    tx %02i: ", i);
+        PrintHash(da_hash);
+        printf("\n");
+        //PrintTxInputs(fd, pos);
+        PrintTxOutputs(fd,pos);
+        pos = NextTxPosition(fd, pos);
+    }
+
+
+
+
+
     close(fd);
 }
 
