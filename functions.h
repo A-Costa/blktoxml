@@ -5,20 +5,20 @@
 #include <unistd.h>
 #include "sha256.h"
 
+typedef unsigned long long POSITION;
+
 unsigned int FourByteToInt(unsigned char *buffer);
-int CheckMagicNo(unsigned char *buffer);
-void PrintFourByteLittleEndian(unsigned char *buffer);
-int NextBlockPosition(int fd, int pos);
-void GetHashPreviousBlock(int fd, int pos, unsigned char *hash);
-void GetBlockHeader(int fd, int pos, unsigned char *header);
-void PrintBlockHeader(unsigned char *buffer);
-void CalcBlockHash(int fd, int pos, unsigned char *hash);
+unsigned int CheckMagicNo(unsigned char *buffer);
+POSITION NextBlockPosition(int fd, POSITION pos);
+POSITION GoToTxCounter(int fd, POSITION pos);
+POSITION GoToFirstTx(int fd, POSITION pos);
+unsigned long long VarIntToUnsignedLongLong(int fd, int pos);
+unsigned long long GetTxCounter(int fd, POSITION pos);
+POSITION JumpAfterVarInt(int fd, POSITION pos);
+POSITION NextTxPosition(int fd, POSITION pos);
+void CalcTxHash(int fd, POSITION pos, unsigned char *hash);
 void PrintHash(unsigned char *buffer);
-unsigned long long int VarIntToLong(int fd, int pos);
 
-unsigned long long NextTxPosition(int fd, int pos);
-int AdvancePositionVarInt(int fd, int pos);
 
-//void CalcTxHash(...)
-//void NextTxPosition(...)
-//unsigned long long CalcTxSize(...)
+void CalcBlockHash(int fd, int pos, unsigned char *hash);
+void GetBlockHeader(int fd, int pos, unsigned char *header);
