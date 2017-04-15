@@ -26,7 +26,7 @@ unsigned long long VarIntToUnsignedLongLong(int fd, int pos){
     unsigned long long result;
     if(lseek(lfd, pos, SEEK_SET) == -1){
         close(lfd);
-        perror("lseek");
+        perror("lseek_varinttounsignedlonglong");
         exit(1);
     }
     if(read(lfd, &first_byte, 1) == -1){
@@ -130,7 +130,7 @@ POSITION NextTxPosition(int fd, POSITION pos){
     unsigned long long i;
     int lfd = dup(fd);
     if(lseek(lfd, pos, SEEK_SET) == -1){
-        perror("lseek");
+        perror("lseek_nexttxposition");
         exit(1);
     }
 
@@ -166,7 +166,7 @@ POSITION JumpAfterVarInt(int fd, POSITION pos){
     unsigned char first_byte;
     if(lseek(lfd, pos, SEEK_SET) == -1){
         close(lfd);
-        perror("lseek");
+        perror("lseek_jumpaftervarint");
         exit(1);
     }
     if(read(lfd, &first_byte, 1) == -1){
@@ -267,7 +267,7 @@ void CalcTxHash(int fd, POSITION pos, unsigned char *hash){
 
     int lfd = dup(fd);
     if(lseek(lfd, pos, SEEK_SET) == -1){
-        perror("lseek");
+        perror("lseek_calctxhash");
         exit(1);
     }
 
@@ -307,7 +307,7 @@ void PrintTxInputs(int fd, POSITION pos){
 
     for(i=0; i<inputs; i++){
         if(lseek(lfd, pos, SEEK_SET) == -1){
-            perror("lseek");
+            perror("lseek_printtxinputs");
             exit(1);
         }
         read(lfd, prev_tx_hash, 32);
