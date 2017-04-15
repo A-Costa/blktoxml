@@ -48,6 +48,7 @@ void test_parse(){
     txcount = VarIntToLong(fd, pos);
     printf("txcount: %llu\n", txcount);
 
+    /*
     if(txcount < 0xFD){
         pos +=1;
     }
@@ -60,9 +61,22 @@ void test_parse(){
     else{
         pos +=9;
     }
+    */
+    printf("pos: %llu\n",pos);
+    pos = AdvancePositionVarInt(fd, pos);
+    printf("pos: %llu\n",pos);
 
-    CalcTxSize(fd, pos);
 
+    pos = NextTxPosition(fd, pos);
+    printf("pos: %llu\n",pos);
+
+    lseek(fd, pos, SEEK_SET);
+
+
+
+    pos = NextTxPosition(fd, pos);
+    printf("pos: %llu\n",pos);
+    
     //for(i=0;i<4;i++){
     //    printf("%02x",buffer[i]);
     //}

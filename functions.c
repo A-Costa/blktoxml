@@ -91,6 +91,33 @@ void PrintHash(unsigned char *buffer){
     //printf("\n");
 }
 
+int AdvancePositionVarInt(int fd, int pos){
+    int lfd = dup(fd);
+    unsigned char first_byte;
+    if(lseek(lfd, pos, SEEK_SET) == -1){
+        perror("lseek");
+        exit(1);
+    }
+    if(read(lfd, &first_byte, 1) == -1){
+        perror("read");
+        exit(1);
+    }
+    close(lfd);
+    if(first_byte < 0xFD){
+        return pos+1;
+    }
+    else if(first_byte == 0xFD){
+        return pos+3;
+    }
+    else if(first_byte == 0xFE){
+        return pos+5;
+    }
+    else if(first_byte == 0xFF){
+        return pos+9;
+    }
+    return 0;
+}
+
 int NextBlockPosition(int fd, int pos){
     // This function takes as input the position of a block in a file (seek index), checks that it is really
     // the beginning of a block (the first 4 bytes must be the magic number 0xD9B4BEF9) and returns the position
@@ -202,14 +229,40 @@ void CalcBlockHash(int fd, int pos, unsigned char *hash){
     sha256_final(&hasher, hash);
 }
 
-unsigned long long CalcTxSize(int fd, int pos){
+unsigned long long NextTxPosition(int fd, int pos){
+    unsigned long long i;
     int lfd = dup(fd);
-    unsigned long long inputs;
     if(lseek(lfd, pos, SEEK_SET) == -1){
         perror("lseek");
         exit(1);
     }
-    inputs = VarIntToLong(fd, pos+4);
-    printf("%llu\n", inputs);
-    return 1;
+
+    unsigned long long inputs, outputs;
+    unsigned long long txinscriptlen, txoutscriptlen;
+
+
+    pos += 4;
+    inputs = VarIntToLong(lfd, pos);
+    printf("inputs: %llu\n",inputs);
+    pos = AdvancePositionVarInt(lfd, pos);
+    for(i=0; i<inputs; i++){
+        pos+=32;
+        pos+=4;
+        txinscriptlen = VarIntToLong(lfd, pos);
+        pos = AdvancePositionVarInt(lfd, pos);
+        pos += txinscriptlen;
+        pos += 4;
+    }
+    outputs = VarIntToLong(lfd, pos);
+    printf("outputs: %llu\n",outputs);
+    pos = AdvancePositionVarInt(lfd, pos);
+    for(i=0; i<outputs; i++){
+        pos+=8;
+        txoutscriptlen = VarIntToLong(lfd, pos);
+        pos = AdvancePositionVarInt(lfd, pos);
+        pos += txoutscriptlen;
+    }
+    pos +=4;
+    close(lfd);
+    return pos;
 }

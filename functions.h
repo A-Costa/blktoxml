@@ -16,7 +16,8 @@ void CalcBlockHash(int fd, int pos, unsigned char *hash);
 void PrintHash(unsigned char *buffer);
 unsigned long long int VarIntToLong(int fd, int pos);
 
-unsigned long long CalcTxSize(int fd, int pos);
+unsigned long long NextTxPosition(int fd, int pos);
+int AdvancePositionVarInt(int fd, int pos);
 
 //void CalcTxHash(...)
 //void NextTxPosition(...)
