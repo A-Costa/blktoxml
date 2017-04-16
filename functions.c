@@ -90,6 +90,38 @@ void PrintHash(unsigned char *buffer){
     //printf("\n");
 }
 
+/*
+void ParseBlockXML_In(int fd, int pos){
+    //Parse every tx in the block at position pos, printing on the stdout the input informations in a xml structure.
+    CalcBlockHash(fd, pos, block_hash);
+    printf("<block hash='");
+    PrintHash(block_hash);
+    printf("'>\n");
+    tx_counter = GetTxCounter(fd, pos);
+    pos = GoToFirstTx(fd, pos);
+    for(i=0;i<tx_counter;i++){
+        printf("    <tx hash='");
+        CalcTxHash(fd, pos, tx_hash);
+        PrintHash(tx_hash);
+        printf("'>\n");
+        n_extractedinputs = ExtractTxInputs(fd, pos, &extractedinputs);
+        for(j=0; j<n_extractedinputs; j++){
+            printf("        <input>\n");
+            printf("            <index>");
+            printf("%u</index>\n" , (extractedinputs[j]).prev_tx_index);
+            printf("            <in_tx_hash>");
+            PrintHash((extractedinputs[j]).prev_tx_hash);
+            printf("</in_tx_hash>\n");
+            printf("        </input>\n");
+        }
+        printf("    </tx>\n");
+        pos = NextTxPosition(fd, pos);
+        free(extractedinputs);
+    }
+    printf("</block>\n");
+}
+*/
+
 //***** -> Positioning Functions
 POSITION NextBlockPosition(int fd, POSITION pos){
     // This function takes as input the position of a block in a file (seek index), checks that it is really

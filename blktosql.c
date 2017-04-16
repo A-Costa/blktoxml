@@ -30,41 +30,43 @@ void test_parse(){
     for(i=0; i<130000; i++){
         pos = NextBlockPosition(fd, pos);
     }
-    for(iterations=0; iterations<10000; iterations++){
-        //printf("*********************************************************************************\n");
+    for(iterations=0; iterations<10; iterations++){
         CalcBlockHash(fd, pos, block_hash);
-        printf("Block Hash: ");
+        printf("<block hash='");
         PrintHash(block_hash);
-        printf(", ");
+        printf("'>\n");
 
         tx_counter = GetTxCounter(fd, pos);
-        printf("tx_counter: %llu,", tx_counter);
+        //printf("tx_counter: %llu,", tx_counter);
 
         pos = GoToFirstTx(fd, pos);
         for(i=0;i<tx_counter;i++){
+            printf("    <tx hash='");
             CalcTxHash(fd, pos, tx_hash);
-            /* DEBUG
-            printf("tx: ");
             PrintHash(tx_hash);
-            printf(", ");
-            */
+            printf("'>\n");
             n_extractedinputs = ExtractTxInputs(fd, pos, &extractedinputs);
-            /* DEBUG
 
             for(j=0; j<n_extractedinputs; j++){
-                printf("     ");
-                printf("%u: " , (extractedinputs[j]).prev_tx_index);
+                printf("        <input>\n");
+                printf("            <index>");
+                printf("%u</index>\n" , (extractedinputs[j]).prev_tx_index);
+                /*
                 for(ii=0; ii<32; ii++){
                     printf("%02x", (extractedinputs[j]).prev_tx_hash[ii]);
                 }
                 printf(",");
+                */
+                printf("            <in_tx_hash>");
+                PrintHash((extractedinputs[j]).prev_tx_hash);
+                printf("</in_tx_hash>\n");
+                printf("        </input>\n");
             }
-
-            */
+            printf("    </tx>\n");
             pos = NextTxPosition(fd, pos);
             free(extractedinputs);
         }
-        printf("\n");
+        printf("</block>\n");
         pos = NextBlockPosition(fd, pos);
     }
 
@@ -76,7 +78,5 @@ void test_parse(){
 
 
 int main(){
-    getchar();
     test_parse();
-    getchar();
 }
