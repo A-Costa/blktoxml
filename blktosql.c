@@ -74,7 +74,7 @@ void test_parse(){
     }
     */
 
-    for(i=0; i</*tx_counter*/1; i++){
+    for(i=0; i</*tx_counter*/5; i++){
         CalcTxHash(fd, pos, da_hash);
         printf("    tx %02i: ", i);
         PrintHash(da_hash);

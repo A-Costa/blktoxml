@@ -34,4 +34,4 @@ void PrintTxInputs(int fd, POSITION pos);
 void PrintTxOutputs(int fd, POSITION pos);
 
 unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result);
-void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *address);
+void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *result, unsigned int *s_result);

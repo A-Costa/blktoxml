@@ -1,7 +1,7 @@
 #include "functions.h"
 
 //***** -> Typedefs and Data Structures
-typedef unsigned long long POSITION;
+//typedef unsigned long long POSITION;
 
 
 
@@ -357,6 +357,7 @@ void PrintTxOutputs(int fd, POSITION pos){
     unsigned char satoshis[8];
     unsigned char *script;
     unsigned char address[40];
+    unsigned int s_address;
     for(j=0; j<40; j++){
         address[j] = 0;
     }
@@ -385,7 +386,7 @@ void PrintTxOutputs(int fd, POSITION pos){
         read(lfd, satoshis, 8);
         unsigned long long amount;
         amount = EightByteToLongLong(satoshis);
-        printf("     amount: %llu\n", amount);
+        printf("        amount: %llu\n", amount);
         pos += 8;
         txoutscriptlen = VarIntToUnsignedLongLong(lfd, pos);
         pos = JumpAfterVarInt(lfd, pos);
@@ -395,16 +396,25 @@ void PrintTxOutputs(int fd, POSITION pos){
             exit(1);
         }
         read(lfd, script, txoutscriptlen);
+        /*
         printf("------> script: ");
         for(j=0;j<txoutscriptlen;j++){
             printf("%02x ", script[j]);
         }
         printf("\n");
-        ScriptToAddress(script, txoutscriptlen, address);
+        */
+        ScriptToAddress(script, txoutscriptlen, address, &s_address);
+        /*
         printf("address: ");
         for(j=0; j<40; j++){
             printf("%02x ", address[j]);
         }
+        */
+        printf("            address: ");
+        for(j=0; j<s_address; j++){
+            printf("%c", address[j]);
+        }
+        printf("\n");
         pos += txoutscriptlen;
     }
     free(script);
@@ -458,53 +468,49 @@ unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result){
     return inputs;
 }
 
-
-void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *address){
+void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *result, unsigned int *s_result){
     int i;
     unsigned char sha_hash[32];
     unsigned char ripemd_hash[25];
-    size_t s_stringa = 40;
-    char stringa[s_stringa];
-
+    unsigned char first_byte;
+    size_t s_address = 40;
+    char address[s_address];
     SHA256_CTX hasher;
-    sha256_init(&hasher);
-    sha256_update(&hasher, (BYTE*)script+1, 0x41);
-    sha256_final(&hasher, sha_hash);
-    RIPEMD160(sha_hash, 32, ripemd_hash+1);
-    // A QUESTO PUNTO SIAMO ALLO STEP 3
-    //https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses#How_to_create_Bitcoin_Address
-    ripemd_hash[0] = 0x00;
-    printf("ripemd: ");
-    for(i=0; i<21; i++){
-        printf("%02x ", ripemd_hash[i]);
-    }
-    printf("\n");
-    sha256_init(&hasher);
-    sha256_update(&hasher, (BYTE*)ripemd_hash, 21);
-    sha256_final(&hasher, sha_hash);
-    sha256_init(&hasher);
-    sha256_update(&hasher, (BYTE*)sha_hash, 32);
-    sha256_final(&hasher, sha_hash);
-    printf("hash_hash: ");
-    for(i=0; i<32; i++){
-        printf("%02x ", sha_hash[i]);
-    }
-    printf("\n");
-    for(i=0; i<4; i++){
-        ripemd_hash[21+i] = sha_hash[i];
-    }
-    printf("ripemd_withchecksum: ");
-    for(i=0; i<25; i++){
-        printf("%02x ", ripemd_hash[i]);
-    }
-    printf("\n");
 
-    //base58(ripemd_hash, stringa);
-    b58enc(stringa, &s_stringa, ripemd_hash, 25);
-    printf("s_stringa: %zu\n", s_stringa);
+    if((script[0] == 0x41) || (script[0] == 0x76 && script[1] == 0xA9 && script[2] == 0x14)){
+        if(script[0] == 0x41){
+            sha256_init(&hasher);
+            sha256_update(&hasher, (BYTE*)script+1, 0x41);
+            sha256_final(&hasher, sha_hash);
+            RIPEMD160(sha_hash, 32, ripemd_hash+1);
+            // A QUESTO PUNTO SIAMO ALLO STEP 3
+            //https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses#How_to_create_Bitcoin_Address
 
+        }
+        else if(script[0] == 0x76 && script[1] == 0xA9 && script[2] == 0x14){
+            for(i=0; i<20; i++){
+                ripemd_hash[1+i] = script[3+i];
+            }
+        }
+        ripemd_hash[0] = 0x00;
 
-    printf("stringa: ");
-    printf("%s", stringa);
-    printf("\n");
+        sha256_init(&hasher);
+        sha256_update(&hasher, (BYTE*)ripemd_hash, 21);
+        sha256_final(&hasher, sha_hash);
+        sha256_init(&hasher);
+        sha256_update(&hasher, (BYTE*)sha_hash, 32);
+        sha256_final(&hasher, sha_hash);
+
+        for(i=0; i<4; i++){
+            ripemd_hash[21+i] = sha_hash[i];
+        }
+
+        b58enc(address, &s_address, ripemd_hash, 25);
+
+        *s_result = s_address;
+
+        for(i=0; i<s_address; i++){
+            result[i] = address[i];
+        }
+    }
 }
