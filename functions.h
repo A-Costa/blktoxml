@@ -14,6 +14,13 @@ typedef struct s_txinput{
     unsigned int prev_tx_index;
 } txinput;
 
+typedef struct s_txoutput{
+    char address[64];
+    unsigned int s_address;
+    unsigned int index;
+} txoutput;
+
+
 
 unsigned int FourByteToInt(unsigned char *buffer);
 unsigned int CheckMagicNo(unsigned char *buffer);
@@ -34,4 +41,4 @@ void PrintTxInputs(int fd, POSITION pos);
 void PrintTxOutputs(int fd, POSITION pos);
 
 unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result);
-void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *result, unsigned int *s_result);
+void ScriptToAddress(unsigned char *script, unsigned long long len, char *result, unsigned int *s_result);

@@ -356,7 +356,7 @@ void PrintTxOutputs(int fd, POSITION pos){
     //unsigned char prev_tx_hash[32];
     unsigned char satoshis[8];
     unsigned char *script;
-    unsigned char address[40];
+    char address[40];
     unsigned int s_address;
     for(j=0; j<40; j++){
         address[j] = 0;
@@ -468,7 +468,58 @@ unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result){
     return inputs;
 }
 
-void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *result, unsigned int *s_result){
+unsigned long long ExtractTxOutputs(int fd, POSITION pos, txoutput **result){
+    unsigned long long i;
+    int j;
+    int lfd = dup(fd);
+    unsigned long long inputs, outputs;
+    unsigned long long txinscriptlen, txoutscriptlen;
+    unsigned char *script;
+    char address[64];
+    unsigned int s_address;
+
+    pos += 4;
+    inputs = VarIntToUnsignedLongLong(lfd, pos);
+    pos = JumpAfterVarInt(lfd, pos);
+
+    for(i=0; i<inputs; i++){
+        pos+=32;
+        pos+=4;
+        txinscriptlen = VarIntToUnsignedLongLong(lfd, pos);
+        pos = JumpAfterVarInt(lfd, pos);
+        pos += txinscriptlen;
+        pos += 4;
+    }
+
+    outputs = VarIntToUnsignedLongLong(lfd, pos);
+    pos = JumpAfterVarInt(lfd, pos);
+
+    *result = malloc(outputs * sizeof(txoutput));
+
+    for(i=0; i<outputs; i++){
+        pos += 8;
+        txoutscriptlen = VarIntToUnsignedLongLong(lfd, pos);
+        pos = JumpAfterVarInt(lfd, pos);
+        script = malloc(sizeof(unsigned char) *txoutscriptlen);
+        if(lseek(lfd, pos, SEEK_SET) == -1){
+            perror("lseek_printtxoutputs");
+            exit(1);
+        }
+        read(lfd, script, txoutscriptlen);
+        ScriptToAddress(script, txoutscriptlen, address, &s_address);
+        for(j=0; j<s_address; j++){
+            (*result)[i].address[j] = address[j];
+        }
+        (*result)[i].s_address = s_address;
+        (*result)[i].index = i;
+
+        pos += txoutscriptlen;
+    }
+    close(lfd);
+    return outputs;
+}
+
+void ScriptToAddress(unsigned char *script, unsigned long long len, char *result, unsigned int *s_result){
     int i;
     unsigned char sha_hash[32];
     unsigned char ripemd_hash[25];
@@ -512,5 +563,8 @@ void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned cha
         for(i=0; i<s_address; i++){
             result[i] = address[i];
         }
+    }
+    else{
+        *s_result = 0;
     }
 }
