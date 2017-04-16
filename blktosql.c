@@ -31,7 +31,7 @@ void test_parse(){
     pos = 0;
 
     //for(i=0; i<136913; i++){
-    for(i=0; i<136914; i++){
+    for(i=0; i<136913; i++){
         pos = NextBlockPosition(fd, pos);
     }
     CalcBlockHash(fd, pos, da_hash);

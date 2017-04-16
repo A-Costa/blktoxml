@@ -1,6 +1,4 @@
 #include "functions.h"
-#include <string.h>
-#include <openssl/ripemd.h>
 
 //***** -> Typedefs and Data Structures
 typedef unsigned long long POSITION;
@@ -94,32 +92,6 @@ void PrintHash(unsigned char *buffer){
     }
     //printf("\n");
 }
-
-char* base58(unsigned char *s, char *out) {
-    static const char *tmpl = "123456789"
-    "ABCDEFGHJKLMNPQRSTUVWXYZ"
-    "abcdefghijkmnopqrstuvwxyz";
-    static char buf[40];
-
-    int c, i, n;
-    if (!out) out = buf;
-
-    out[n = 34] = 0;
-    while (n--) {
-        for (c = i = 0; i < 25; i++) {
-            c = c * 256 + s[i];
-            s[i] = c / 58;
-            c %= 58;
-        }
-        out[n] = tmpl[c];
-    }
-
-    for (n = 0; out[n] == '1'; n++);
-    memmove(out, out + n, 34 - n);
-
-    return out;
-}
-
 
 //***** -> Positioning Functions
 POSITION NextBlockPosition(int fd, POSITION pos){
@@ -491,7 +463,8 @@ void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned cha
     int i;
     unsigned char sha_hash[32];
     unsigned char ripemd_hash[25];
-    char stringa[40];
+    size_t s_stringa = 40;
+    char stringa[s_stringa];
 
     SHA256_CTX hasher;
     sha256_init(&hasher);
@@ -526,7 +499,10 @@ void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned cha
     }
     printf("\n");
 
-    base58(ripemd_hash, stringa);
+    //base58(ripemd_hash, stringa);
+    b58enc(stringa, &s_stringa, ripemd_hash, 25);
+    printf("s_stringa: %zu\n", s_stringa);
+
 
     printf("stringa: ");
     printf("%s", stringa);

@@ -3,7 +3,10 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <openssl/ripemd.h>
 #include "sha256.h"
+#include "libbase58.h"
 
 typedef unsigned long long POSITION;
 typedef struct s_txinput{
@@ -16,7 +19,6 @@ unsigned int FourByteToInt(unsigned char *buffer);
 unsigned int CheckMagicNo(unsigned char *buffer);
 unsigned long long VarIntToUnsignedLongLong(int fd, int pos);
 void PrintHash(unsigned char *buffer);
-char* base58(unsigned char *s, char *out);
 
 POSITION NextBlockPosition(int fd, POSITION pos);
 POSITION NextTxPosition(int fd, POSITION pos);
