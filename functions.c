@@ -89,38 +89,51 @@ void PrintHash(unsigned char *buffer){
     }
     //printf("\n");
 }
-
-/*
-void ParseBlockXML_In(int fd, int pos){
+void FPrintHash(unsigned char *buffer, FILE *stream){
+    // This function prints the 32 bytes of a hash contained in *buffer
+    int i;
+    for(i=31;i>=0;i--){
+        fprintf(stream, "%02x", buffer[i]);
+    }
+    //printf("\n");
+}
+void ParseBlockXML_In(int fd, int pos, FILE *stream){
     //Parse every tx in the block at position pos, printing on the stdout the input informations in a xml structure.
+    unsigned long long i,j;
+    unsigned char block_hash[32];
+    unsigned char tx_hash[32];
+    unsigned long long tx_counter;
+    txinput *extractedinputs;
+    txoutput *extractedoutputs;
+    unsigned long long n_extractedinputs;
+    unsigned long long n_extractedoutputs;
     CalcBlockHash(fd, pos, block_hash);
-    printf("<block hash='");
-    PrintHash(block_hash);
-    printf("'>\n");
+    fprintf(stream, "<block hash='");
+    FPrintHash(block_hash, stream);
+    fprintf(stream, "'>\n");
     tx_counter = GetTxCounter(fd, pos);
     pos = GoToFirstTx(fd, pos);
     for(i=0;i<tx_counter;i++){
-        printf("    <tx hash='");
+        fprintf(stream, "    <tx hash='");
         CalcTxHash(fd, pos, tx_hash);
-        PrintHash(tx_hash);
-        printf("'>\n");
+        FPrintHash(tx_hash, stream);
+        fprintf(stream, "'>\n");
         n_extractedinputs = ExtractTxInputs(fd, pos, &extractedinputs);
         for(j=0; j<n_extractedinputs; j++){
-            printf("        <input>\n");
-            printf("            <index>");
-            printf("%u</index>\n" , (extractedinputs[j]).prev_tx_index);
-            printf("            <in_tx_hash>");
-            PrintHash((extractedinputs[j]).prev_tx_hash);
-            printf("</in_tx_hash>\n");
-            printf("        </input>\n");
+            fprintf(stream, "        <input>\n");
+            fprintf(stream, "            <index>");
+            fprintf(stream, "%u</index>\n" , (extractedinputs[j]).prev_tx_index);
+            fprintf(stream, "            <in_tx_hash>");
+            FPrintHash((extractedinputs[j]).prev_tx_hash, stream);
+            fprintf(stream, "</in_tx_hash>\n");
+            fprintf(stream, "        </input>\n");
         }
-        printf("    </tx>\n");
+        fprintf(stream, "    </tx>\n");
         pos = NextTxPosition(fd, pos);
         free(extractedinputs);
     }
-    printf("</block>\n");
+    fprintf(stream, "</block>\n");
 }
-*/
 
 //***** -> Positioning Functions
 POSITION NextBlockPosition(int fd, POSITION pos){
