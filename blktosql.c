@@ -25,8 +25,8 @@ void test_parse(){
         pos = NextBlockPosition(fd, pos);
     }
 
-    for(iterations=0; iterations<1000; iterations++){
-        ParseBlockXML_In(fd, pos, stream);
+    for(iterations=0; iterations<10; iterations++){
+        ParseBlockXML(fd, pos, stream);
         pos = NextBlockPosition(fd, pos);
     }
     close(fd);

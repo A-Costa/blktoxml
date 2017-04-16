@@ -26,7 +26,7 @@ unsigned int FourByteToInt(unsigned char *buffer);
 unsigned int CheckMagicNo(unsigned char *buffer);
 unsigned long long VarIntToUnsignedLongLong(int fd, int pos);
 void PrintHash(unsigned char *buffer);
-void ParseBlockXML_In(int fd, int pos, FILE *stream);
+void ParseBlockXML(int fd, int pos, FILE *stream);
 
 POSITION NextBlockPosition(int fd, POSITION pos);
 POSITION NextTxPosition(int fd, POSITION pos);

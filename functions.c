@@ -97,12 +97,14 @@ void FPrintHash(unsigned char *buffer, FILE *stream){
     }
     //printf("\n");
 }
-void ParseBlockXML_In(int fd, int pos, FILE *stream){
+void ParseBlockXML(int fd, int pos, FILE *stream){
     //Parse every tx in the block at position pos, printing on the stdout the input informations in a xml structure.
     unsigned long long i,j;
+    unsigned int k;
     unsigned char block_hash[32];
     unsigned char tx_hash[32];
     unsigned long long tx_counter;
+    unsigned int address_size;
     txinput *extractedinputs;
     txoutput *extractedoutputs;
     unsigned long long n_extractedinputs;
@@ -119,18 +121,40 @@ void ParseBlockXML_In(int fd, int pos, FILE *stream){
         FPrintHash(tx_hash, stream);
         fprintf(stream, "'>\n");
         n_extractedinputs = ExtractTxInputs(fd, pos, &extractedinputs);
+        fprintf(stream, "        <inputs>\n");
         for(j=0; j<n_extractedinputs; j++){
-            fprintf(stream, "        <input>\n");
-            fprintf(stream, "            <index>");
+            fprintf(stream, "            <input>\n");
+            fprintf(stream, "                <index>");
             fprintf(stream, "%u</index>\n" , (extractedinputs[j]).prev_tx_index);
-            fprintf(stream, "            <in_tx_hash>");
+            fprintf(stream, "                <in_tx_hash>");
             FPrintHash((extractedinputs[j]).prev_tx_hash, stream);
             fprintf(stream, "</in_tx_hash>\n");
-            fprintf(stream, "        </input>\n");
+            fprintf(stream, "            </input>\n");
         }
+        fprintf(stream, "        </inputs>\n");
+        free(extractedinputs);
+        n_extractedoutputs = ExtractTxOutputs(fd, pos, &extractedoutputs);
+        fprintf(stream, "        <outputs>\n");
+        for(j=0; j<n_extractedoutputs; j++){
+            fprintf(stream, "            <output>\n");
+            fprintf(stream, "                <index>");
+            fprintf(stream, "%u</index>\n", (extractedoutputs[j]).index);
+            fprintf(stream, "                <address>");
+            address_size = extractedoutputs[j].s_address;
+            if(address_size == 0){
+                fprintf(stream, "NaN");
+            }
+            else{
+                for(k=0; k<address_size-1; k++){
+                    fprintf(stream, "%c", extractedoutputs[j].address[k]);
+                }
+            }
+            fprintf(stream, "</address>\n");
+            fprintf(stream, "            </output>\n");
+        }
+        fprintf(stream, "        </outputs>\n");
         fprintf(stream, "    </tx>\n");
         pos = NextTxPosition(fd, pos);
-        free(extractedinputs);
     }
     fprintf(stream, "</block>\n");
 }
