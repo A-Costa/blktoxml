@@ -1,4 +1,6 @@
 #include "functions.h"
+#include <string.h>
+#include <openssl/ripemd.h>
 
 //***** -> Typedefs and Data Structures
 typedef unsigned long long POSITION;
@@ -92,6 +94,32 @@ void PrintHash(unsigned char *buffer){
     }
     //printf("\n");
 }
+
+char* base58(unsigned char *s, char *out) {
+    static const char *tmpl = "123456789"
+    "ABCDEFGHJKLMNPQRSTUVWXYZ"
+    "abcdefghijkmnopqrstuvwxyz";
+    static char buf[40];
+
+    int c, i, n;
+    if (!out) out = buf;
+
+    out[n = 34] = 0;
+    while (n--) {
+        for (c = i = 0; i < 25; i++) {
+            c = c * 256 + s[i];
+            s[i] = c / 58;
+            c %= 58;
+        }
+        out[n] = tmpl[c];
+    }
+
+    for (n = 0; out[n] == '1'; n++);
+    memmove(out, out + n, 34 - n);
+
+    return out;
+}
+
 
 //***** -> Positioning Functions
 POSITION NextBlockPosition(int fd, POSITION pos){
@@ -356,6 +384,10 @@ void PrintTxOutputs(int fd, POSITION pos){
     //unsigned char prev_tx_hash[32];
     unsigned char satoshis[8];
     unsigned char *script;
+    unsigned char address[40];
+    for(j=0; j<40; j++){
+        address[j] = 0;
+    }
 
     pos += 4;
     inputs = VarIntToUnsignedLongLong(lfd, pos);
@@ -382,7 +414,6 @@ void PrintTxOutputs(int fd, POSITION pos){
         unsigned long long amount;
         amount = EightByteToLongLong(satoshis);
         printf("     amount: %llu\n", amount);
-        //50 06550000
         pos += 8;
         txoutscriptlen = VarIntToUnsignedLongLong(lfd, pos);
         pos = JumpAfterVarInt(lfd, pos);
@@ -397,8 +428,14 @@ void PrintTxOutputs(int fd, POSITION pos){
             printf("%02x ", script[j]);
         }
         printf("\n");
+        ScriptToAddress(script, txoutscriptlen, address);
+        printf("address: ");
+        for(j=0; j<40; j++){
+            printf("%02x ", address[j]);
+        }
         pos += txoutscriptlen;
     }
+    free(script);
     close(lfd);
 }
 
@@ -447,4 +484,51 @@ unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result){
     }
     close(lfd);
     return inputs;
+}
+
+
+void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *address){
+    int i;
+    unsigned char sha_hash[32];
+    unsigned char ripemd_hash[25];
+    char stringa[40];
+
+    SHA256_CTX hasher;
+    sha256_init(&hasher);
+    sha256_update(&hasher, (BYTE*)script+1, 0x41);
+    sha256_final(&hasher, sha_hash);
+    RIPEMD160(sha_hash, 32, ripemd_hash+1);
+    // A QUESTO PUNTO SIAMO ALLO STEP 3
+    //https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses#How_to_create_Bitcoin_Address
+    ripemd_hash[0] = 0x00;
+    printf("ripemd: ");
+    for(i=0; i<21; i++){
+        printf("%02x ", ripemd_hash[i]);
+    }
+    printf("\n");
+    sha256_init(&hasher);
+    sha256_update(&hasher, (BYTE*)ripemd_hash, 21);
+    sha256_final(&hasher, sha_hash);
+    sha256_init(&hasher);
+    sha256_update(&hasher, (BYTE*)sha_hash, 32);
+    sha256_final(&hasher, sha_hash);
+    printf("hash_hash: ");
+    for(i=0; i<32; i++){
+        printf("%02x ", sha_hash[i]);
+    }
+    printf("\n");
+    for(i=0; i<4; i++){
+        ripemd_hash[21+i] = sha_hash[i];
+    }
+    printf("ripemd_withchecksum: ");
+    for(i=0; i<25; i++){
+        printf("%02x ", ripemd_hash[i]);
+    }
+    printf("\n");
+
+    base58(ripemd_hash, stringa);
+
+    printf("stringa: ");
+    printf("%s", stringa);
+    printf("\n");
 }

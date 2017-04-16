@@ -16,6 +16,7 @@ unsigned int FourByteToInt(unsigned char *buffer);
 unsigned int CheckMagicNo(unsigned char *buffer);
 unsigned long long VarIntToUnsignedLongLong(int fd, int pos);
 void PrintHash(unsigned char *buffer);
+char* base58(unsigned char *s, char *out);
 
 POSITION NextBlockPosition(int fd, POSITION pos);
 POSITION NextTxPosition(int fd, POSITION pos);
@@ -31,3 +32,4 @@ void PrintTxInputs(int fd, POSITION pos);
 void PrintTxOutputs(int fd, POSITION pos);
 
 unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result);
+void ScriptToAddress(unsigned char *script, unsigned long long len, unsigned char *address);
