@@ -3,9 +3,6 @@
 //***** -> Typedefs and Data Structures
 //typedef unsigned long long POSITION;
 
-
-
-
 //***** -> Utilities Functions
 unsigned int FourByteToInt(unsigned char *buffer){
     // This function takes a 4 byte array and returns the corresponding int
@@ -257,6 +254,7 @@ void GetBlockHeader(int fd, POSITION pos, unsigned char *header){
 
 //***** -> Tx-Related Functions
 unsigned long long GetTxCounter(int fd, POSITION pos){
+    //returns the number of tx contained in block at position pos
     return VarIntToUnsignedLongLong(fd, GoToTxCounter(fd, pos));
 }
 void CalcTxHash(int fd, POSITION pos, unsigned char *hash){
@@ -307,120 +305,6 @@ void CalcTxHash(int fd, POSITION pos, unsigned char *hash){
     sha256_final(&hasher, hash);
     free(tx);
 }
-void PrintTxInputs(int fd, POSITION pos){
-    unsigned long long i;
-    int lfd = dup(fd);
-    unsigned long long inputs, outputs;
-    unsigned long long txinscriptlen;
-    unsigned char prev_tx_hash[32];
-    unsigned char prev_tx_index[4];
-    unsigned int prev_tx_index_int;
-
-    pos += 4;
-    inputs = VarIntToUnsignedLongLong(lfd, pos);
-    pos = JumpAfterVarInt(lfd, pos);
-
-    for(i=0; i<inputs; i++){
-        if(lseek(lfd, pos, SEEK_SET) == -1){
-            perror("lseek_printtxinputs");
-            exit(1);
-        }
-        read(lfd, prev_tx_hash, 32);
-        printf("       ");
-        PrintHash(prev_tx_hash);
-        read(lfd, prev_tx_index, 4);
-        prev_tx_index_int = FourByteToInt(prev_tx_index);
-        if(prev_tx_index_int == 0xFFFFFFFF){
-            printf(" ---> coinbase");
-        }
-        else{
-            printf(" ---> %u", prev_tx_index_int);
-        }
-        printf("\n");
-        pos+=32;
-        pos+=4;
-        txinscriptlen = VarIntToUnsignedLongLong(lfd, pos);
-        pos = JumpAfterVarInt(lfd, pos);
-        pos += txinscriptlen;
-        pos += 4;
-    }
-    close(lfd);
-}
-
-void PrintTxOutputs(int fd, POSITION pos){
-    unsigned long long i;
-    int j;
-    int lfd = dup(fd);
-    unsigned long long inputs, outputs;
-    unsigned long long txinscriptlen, txoutscriptlen;
-    //unsigned char prev_tx_hash[32];
-    unsigned char satoshis[8];
-    unsigned char *script;
-    char address[40];
-    unsigned int s_address;
-    for(j=0; j<40; j++){
-        address[j] = 0;
-    }
-
-    pos += 4;
-    inputs = VarIntToUnsignedLongLong(lfd, pos);
-    pos = JumpAfterVarInt(lfd, pos);
-
-    for(i=0; i<inputs; i++){
-        pos+=32;
-        pos+=4;
-        txinscriptlen = VarIntToUnsignedLongLong(lfd, pos);
-        pos = JumpAfterVarInt(lfd, pos);
-        pos += txinscriptlen;
-        pos += 4;
-    }
-
-    outputs = VarIntToUnsignedLongLong(lfd, pos);
-    pos = JumpAfterVarInt(lfd, pos);
-
-    for(i=0; i<outputs; i++){
-        if(lseek(lfd, pos, SEEK_SET) == -1){
-            perror("lseek_printtxinputs");
-            exit(1);
-        }
-        read(lfd, satoshis, 8);
-        unsigned long long amount;
-        amount = EightByteToLongLong(satoshis);
-        printf("        amount: %llu\n", amount);
-        pos += 8;
-        txoutscriptlen = VarIntToUnsignedLongLong(lfd, pos);
-        pos = JumpAfterVarInt(lfd, pos);
-        script = malloc(sizeof(unsigned char) *txoutscriptlen);
-        if(lseek(lfd, pos, SEEK_SET) == -1){
-            perror("lseek_printtxinputs");
-            exit(1);
-        }
-        read(lfd, script, txoutscriptlen);
-        /*
-        printf("------> script: ");
-        for(j=0;j<txoutscriptlen;j++){
-            printf("%02x ", script[j]);
-        }
-        printf("\n");
-        */
-        ScriptToAddress(script, txoutscriptlen, address, &s_address);
-        /*
-        printf("address: ");
-        for(j=0; j<40; j++){
-            printf("%02x ", address[j]);
-        }
-        */
-        printf("            address: ");
-        for(j=0; j<s_address; j++){
-            printf("%c", address[j]);
-        }
-        printf("\n");
-        pos += txoutscriptlen;
-    }
-    free(script);
-    close(lfd);
-}
-
 unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result){
     unsigned long long i;
     int j;
@@ -467,7 +351,6 @@ unsigned long long ExtractTxInputs(int fd, POSITION pos, txinput **result){
     close(lfd);
     return inputs;
 }
-
 unsigned long long ExtractTxOutputs(int fd, POSITION pos, txoutput **result){
     unsigned long long i;
     int j;
@@ -518,7 +401,6 @@ unsigned long long ExtractTxOutputs(int fd, POSITION pos, txoutput **result){
     close(lfd);
     return outputs;
 }
-
 void ScriptToAddress(unsigned char *script, unsigned long long len, char *result, unsigned int *s_result){
     int i;
     unsigned char sha_hash[32];
